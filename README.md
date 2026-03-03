@@ -296,6 +296,23 @@ end
 sections = { lualine_a = { hello } }
 ```
 
+When given as a table entry, the function receives `(self, context)` where
+`context` is a table with the following fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `section` | `string` | Section letter (`'a'`…`'z'`) |
+| `mode` | `string` | Current vim mode (`'normal'`, `'insert'`, …) |
+| `component_name` | `string` | Name of this component instance |
+| `winid` | `integer` | Window handle for the statusline being drawn |
+| `bufnr` | `integer` | Buffer number in that window |
+| `is_focused` | `boolean\|integer` | Whether the statusline is active |
+| `prev_component` | `table\|nil` | Previous visible component object, or `nil` |
+
+> **Breaking change:** the second argument was previously `is_focused`
+> (a boolean). If your function component uses the second argument, update
+> it to read `context.is_focused` instead.
+
 ##### Vim functions as lualine component
 
 ```lua
@@ -470,6 +487,7 @@ sections = {
                             --
 
       cond = nil,           -- Condition function, the component is loaded when the function returns `true`.
+                            -- Receives a context table as its argument (see "Lua functions as lualine component").
 
       draw_empty = false,   -- Whether to draw component even if it's empty.
                             -- Might be useful if you want just the separator.
@@ -481,13 +499,14 @@ sections = {
       --  '|' is synonymous with 'or', meaning a different acceptable format for that placeholder.
       -- color function has to return one of other color types ('highlight_group_name' | { fg = '#rrggbb'|cterm_value(0-255)|'color_name(red)', bg= '#rrggbb', gui='style' })
       -- color functions can be used to have different colors based on state as shown below.
+      -- The function receives a context table (see "Lua functions as lualine component").
       --
       -- Examples:
       --   color = { fg = '#ffaa88', bg = 'grey', gui='italic,bold' },
       --   color = { fg = 204 }   -- When fg/bg are omitted, they default to the your theme's fg/bg.
       --   color = 'WarningMsg'   -- Highlight groups can also be used.
-      --   color = function(section)
-      --      return { fg = vim.bo.modified and '#aa3355' or '#33aa88' }
+      --   color = function(ctx)
+      --      return { fg = vim.bo[ctx.bufnr].modified and '#aa3355' or '#33aa88' }
       --   end,
       color = nil, -- The default is your theme's color for that section and mode.
 
@@ -517,6 +536,8 @@ sections = {
                    -- - number of clicks in case of multiple clicks
                    -- - mouse button used (l(left)/r(right)/m(middle)/...)
                    -- - modifiers pressed (s(shift)/c(ctrl)/a(alt)/m(meta)...)
+                   -- - context table with winid, bufnr, section, mode, etc.
+                   --   (see "Lua functions as lualine component" for all fields)
     }
   }
 }

@@ -5,7 +5,7 @@ local M = require('lualine.component'):extend()
 M.update_status = function(self, is_focused)
   -- 1st element in options table is the function provided by config
   local ok, retval
-  ok, retval = pcall(self.options[1], self, is_focused)
+  ok, retval = pcall(self.options[1], self, self.context)
   if not ok then
     return ''
   end

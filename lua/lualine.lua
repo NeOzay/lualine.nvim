@@ -164,8 +164,13 @@ local statusline = modules.utils.retry_call_wrap(function(sections, is_focused, 
   for _, section_name in ipairs(section_sequence) do
     if sections['lualine_' .. section_name] then
       -- insert highlight+components of this section to status_builder
+      local winid = refresh_real_curwin or vim.api.nvim_get_current_win()
+      local render_ctx = {
+        winid = winid,
+        bufnr = vim.api.nvim_win_get_buf(refresh_real_curwin or vim.api.nvim_get_current_win()),
+      }
       local section_data =
-        modules.utils_section.draw_section(sections['lualine_' .. section_name], section_name, is_focused)
+        modules.utils_section.draw_section(sections['lualine_' .. section_name], section_name, is_focused, render_ctx)
       if #section_data > 0 then
         if not applied_midsection_divider and section_name > 'c' then
           applied_midsection_divider = true

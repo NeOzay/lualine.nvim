@@ -327,14 +327,11 @@ local function get_default_component_color(hl_name, mode, section, color, option
 end
 
 ---Create highlight group with fg bg and gui from theme
----@param color table has to be { fg = "#rrggbb", bg="#rrggbb" gui = "effect" }
----       all the color elements are optional if fg or bg is not given options
----       must be provided So fg and bg can default the themes colors
----@param highlight_tag string is unique tag for highlight group
----returns the name of highlight group
----@param options table is parameter of component.init() function
----@return table that can be used by component_format_highlight
----  to retrieve highlight group
+---@param color LualineColor Color definition — hl-group string, `{fg, bg, gui}` table, or dynamic function
+---@param highlight_tag string Unique tag used to build the highlight group name
+---@param options LualineComponentOptions Component options (used for section and color defaults)
+---@param apply_no_default boolean When `true`, skip inheriting missing fg/bg from the theme
+---@return LualineHighlightToken token Opaque token; pass to `component_format_highlight()` to get the stl string
 function M.create_component_highlight_group(color, highlight_tag, options, apply_no_default)
   local section = options.self.section
   local tag_id = 1
@@ -390,7 +387,7 @@ function M.create_component_highlight_group(color, highlight_tag, options, apply
     local hl_name = table.concat({ 'lualine', section, highlight_tag, mode }, '_')
     local cl = color
     if type(color) == 'function' then
-      cl = color { section = section } or {}
+      cl = color { section = section, mode = mode, component_name = options.component_name } or {}
     end
     if type(cl) == 'string' then
       cl = { link = cl }
@@ -414,8 +411,10 @@ end
 ---@param highlight table return value of create_component_highlight_group
 ---  return value of create_component_highlight_group is to be passed in
 ---  this parameter to receive highlight that was created
+---@param is_focused boolean|nil
+---@param render_ctx LualineContext|nil render context forwarded from the component via `format_hl()`
 ---@return string formatted highlight group name
-function M.component_format_highlight(highlight, is_focused)
+function M.component_format_highlight(highlight, is_focused, render_ctx)
   if not highlight.fn then
     local highlight_group = highlight.name
     if highlight.no_mode then
@@ -424,7 +423,15 @@ function M.component_format_highlight(highlight, is_focused)
     highlight_group = append_mode(highlight_group, is_focused)
     return '%#' .. highlight_group .. '#'
   else
-    local color = highlight.fn { section = highlight.section } or {}
+    local color = highlight.fn {
+      section = highlight.section,
+      mode = M.get_mode_suffix():sub(2),
+      component_name = (render_ctx and render_ctx.component_name) or highlight.options.component_name,
+      winid = render_ctx and render_ctx.winid,
+      bufnr = render_ctx and render_ctx.bufnr,
+      is_focused = render_ctx and render_ctx.is_focused,
+      prev_component = render_ctx and render_ctx.prev_component,
+    } or {}
     local hl_name = highlight.name
     if type(color) == 'string' then
       M.highlight(hl_name .. M.get_mode_suffix(), nil, nil, nil, color)

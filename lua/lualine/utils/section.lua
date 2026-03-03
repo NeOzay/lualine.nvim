@@ -12,18 +12,28 @@ local highlight = require('lualine.highlight')
 ---@param section table list of components
 ---@param section_name string used for getting proper hl
 ---@param is_focused boolean
+---@param render_ctx LualineContext|nil partial context with `winid`/`bufnr` from the current render pass; `section` and `prev_component` are added here
 ---@return string formatted string for a section
 --TODO Clean this up this does lots of messy stuff.
-function M.draw_section(section, section_name, is_focused)
+function M.draw_section(section, section_name, is_focused, render_ctx)
   local highlight_name = highlight.format_highlight(section_name, is_focused)
 
   local status = {}
+  local prev_component = nil
   for _, component in pairs(section) do
     -- load components into status table
     if type(component) ~= 'table' or (type(component) == 'table' and not component.component_no) then
       return '' -- unknown element in section. section possibly not yet loaded
     end
-    table.insert(status, component:draw(highlight_name, is_focused))
+    local ctx = vim.tbl_extend('force', render_ctx or {}, {
+      section = section_name,
+      prev_component = prev_component,
+    })
+    local comp_status = component:draw(highlight_name, is_focused, ctx)
+    if #comp_status > 0 then
+      prev_component = component
+    end
+    table.insert(status, comp_status)
   end
 
   local section_color = utils.extract_highlight_colors(string.match(highlight_name, '%%#(.*)#'))
